@@ -11,6 +11,7 @@ dns.setServers([
 // require('dotenv').config({path: './env'})--one way to configure dotenv (code works fine with this statement only but it spoils the consistency of the code so we write another method to configure dotenv which also dont spoils the consistency of the code)
 import dotenv from "dotenv";
 import connectDB from "./db/index.js";
+import { app } from './app.js';
 
 
 dotenv.config({
@@ -18,7 +19,15 @@ dotenv.config({
 })
 
 console.log(process.env.MONGODB_URI)
-connectDB()
+connectDB()       //connectDB is an async function so returns promise so we need to handle the promise using then catch
+.then(() => {
+    app.listen(process.env.PORT||8000,() => {
+        console.log(`Server is running at port : ${process.env.PORT}`);
+    })
+})
+.catch((err) => {
+    console.log("MONGODB connection failed !!!",err);
+})
 
 
 
