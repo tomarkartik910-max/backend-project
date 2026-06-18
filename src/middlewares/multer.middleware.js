@@ -12,3 +12,4 @@ const storage = multer.diskStorage({  //cb is callback
 export const upload = multer({
     storage:storage
 })
+
