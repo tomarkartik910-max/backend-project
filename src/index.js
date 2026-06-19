@@ -18,6 +18,10 @@ dotenv.config({
     path:'./.env'
 })
 
+
+
+
+
 console.log(process.env.MONGODB_URI)
 connectDB()       //connectDB is an async function so returns promise so we need to handle the promise using then catch
 .then(() => {

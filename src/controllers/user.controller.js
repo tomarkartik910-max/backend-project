@@ -9,7 +9,7 @@ const registerUser = asyncHandler (async (req,res) => {
     // res.status(200).json({
     //     message:"chai aur code"
     // })
-
+    // console.log("Controller reached")
 
     //before writing the controller it is good practice to write the steps 
 
@@ -24,7 +24,7 @@ const registerUser = asyncHandler (async (req,res) => {
     //return res
 
     const {fullName,email,username,password} = req.body
-    console.log("email:",email);
+    //console.log("email:",email);
 
     // if(fullName === ""){
     //     throw new ApiError(400,"fullname is required")
@@ -37,7 +37,7 @@ const registerUser = asyncHandler (async (req,res) => {
     }
 
     //User.findOne({email})  -- we can check with this for the existing user but we write it in better way
-    const existedUser=username.findOne({
+    const existedUser=await User.findOne({
         $or:[{username},{email}]  //here we can write as many field as we want
     })
 
@@ -49,11 +49,21 @@ const registerUser = asyncHandler (async (req,res) => {
     //req.files (by multer middleware) -- gives us the access of the file
 
     const avatarLocalPath=req.files?.avatar[0]?.path;   //localpath because it is on our server not on the cloudinary
-    const coverImageLocalPath=req.files?.coverImage[0]?.path;
+    //const coverImageLocalPath=req.files?.coverImage[0]?.path;  //this throws error if we send data without the coverimage although the coverimage is not required field but here we check conditionally and we still cant check conditionally from the undefined
+
+
+    let coverImageLocalPath;
+    if(req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length>0){
+        coverImageLocalPath=req.files.coverImage[0].path
+    }
+
+    //console.log(req.files)
 
     if(!avatarLocalPath){
         throw new ApiError(400,"Avatar file is required")
     }
+    //console.log(avatarLocalPath);
+    //console.log(coverImageLocalPath);
 
     const avatar=await uploadOnCloudinary(avatarLocalPath) //this await is the reason we made this with the async
     const coverImage=await uploadOnCloudinary(coverImageLocalPath)
@@ -80,7 +90,7 @@ const registerUser = asyncHandler (async (req,res) => {
     }
 
     return res.status(201).json(
-        new ApiResponse(200,createdUse,"User registered Successfully")
+        new ApiResponse(200,createdUser,"User registered Successfully")
     )
 
 })

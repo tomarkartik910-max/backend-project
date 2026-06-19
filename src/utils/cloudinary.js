@@ -1,5 +1,10 @@
 import {v2 as cloudinary} from "cloudinary"
 import fs, { unlink } from "fs"
+import dotenv from "dotenv";
+
+dotenv.config();
+
+//console.log(process.env.CLOUDINARY_API_KEY);
 
 cloudinary.config({ 
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
@@ -15,9 +20,11 @@ const uploadOnCloudinary = async (localFilePath) => {
             resource_type:"auto"
         })
         //file has been uploaded successfully
-        console.log("file is uploaded on cloudinary",response.url);
+        //console.log("file is uploaded on cloudinary",response.url);
+        fs.unlinkSync(localFilePath)
         return response;
     } catch (error) {
+        //console.log(error)
         fs.unlinkSync(localFilePath)    //remove the locally saved temporary file as the upload operation got failed so that there would be no malicious file in our file system
         return null;
     }

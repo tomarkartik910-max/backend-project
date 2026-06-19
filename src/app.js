@@ -18,6 +18,12 @@ app.use(cookieParser())   //it is for the middlewares configuration
 
 import userRouter from "./routes/user.routes.js"
 
+
+// app.use((req, res, next) => {
+//     console.log(req.method, req.url);
+//     next();
+// });
+
 //routes declaration
 app.use("/api/v1/users",userRouter)
 
