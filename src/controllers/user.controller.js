@@ -6,11 +6,17 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import { application } from "express"
 
 
-const generateAccessAndRefreshTokens = async(userId){
+const generateAccessAndRefreshTokens = async(userId)=>{
     try {
         const user =  await User.findById(userId)
+        //console.log(user);
+        
         const accessToken=user.generateAccessToken()
+        //console.log(accessToken);
+        
         const refreshToken=user.generateRefreshToken()
+        //console.log("refreshToken is here",refreshToken);
+        
 
         //putting refresh token in database
         user.refreshToken=refreshToken
@@ -19,6 +25,7 @@ const generateAccessAndRefreshTokens = async(userId){
         return {accessToken,refreshToken}
 
     } catch (error) {
+        console.log(error)
         throw new ApiError(500,"Something went wrong while generating access and refresh token")
     }
 }
@@ -75,8 +82,8 @@ const registerUser = asyncHandler (async (req,res) => {
         coverImageLocalPath=req.files.coverImage[0].path
     }
 
-    console.log(req.files)
-    console.log(req.body)
+    //console.log(req.files)
+    //console.log(req.body)
 
     if(!avatarLocalPath){
         throw new ApiError(400,"Avatar file is required")
@@ -125,18 +132,20 @@ const loginUser = asyncHandler(async (req,res) =>{
     //send cookie
 
     const {email,username,password} = req.body
+    //console.log(req.body)
     if(!(username || email)){
         throw new ApiError(400,"username or password is required")
     }
 
     const user = await User.findOne({
-        $or : [{username},{emai}]
+        $or : [{username},{email}]
     })
 
     if(!user){
         throw new ApiError(404,"User does not exist")
     }
-
+    //console.log(password);
+    
     const isPasswordValid = await user.isPasswordCorrect(password)
 
     if(!isPasswordValid){
