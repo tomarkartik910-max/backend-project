@@ -3,7 +3,25 @@ import {ApiError} from "../utils/ApiError.js"
 import {User} from "../models/user.model.js"   //User can directly communicate with the mongoDB
 import { uploadOnCloudinary } from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
+import { application } from "express"
 
+
+const generateAccessAndRefreshTokens = async(userId){
+    try {
+        const user =  await User.findById(userId)
+        const accessToken=user.generateAccessToken()
+        const refreshToken=user.generateRefreshToken()
+
+        //putting refresh token in database
+        user.refreshToken=refreshToken
+        await user.save({validateBeforeSave:false})  //while saving the models triggered and thus might ask for the validity but i know what am i doing so i jump off those validation
+
+        return {accessToken,refreshToken}
+
+    } catch (error) {
+        throw new ApiError(500,"Something went wrong while generating access and refresh token")
+    }
+}
 
 const registerUser = asyncHandler (async (req,res) => {
     // res.status(200).json({
@@ -20,7 +38,7 @@ const registerUser = asyncHandler (async (req,res) => {
     //upload them to cloudinary , avatar
     //create user object - create entry in db
     //remove password and refresh token field from response
-    //checl for user reaction
+    //check for user reaction
     //return res
 
     const {fullName,email,username,password} = req.body
@@ -57,7 +75,8 @@ const registerUser = asyncHandler (async (req,res) => {
         coverImageLocalPath=req.files.coverImage[0].path
     }
 
-    //console.log(req.files)
+    console.log(req.files)
+    console.log(req.body)
 
     if(!avatarLocalPath){
         throw new ApiError(400,"Avatar file is required")
@@ -95,4 +114,94 @@ const registerUser = asyncHandler (async (req,res) => {
 
 })
 
+const loginUser = asyncHandler(async (req,res) =>{
+    //steps for this controller
+
+    //req body -> gives data
+    //access on basis of username or email
+    //find the user
+    //password check 
+    //access token and refresh token generate 
+    //send cookie
+
+    const {email,username,password} = req.body
+    if(!(username || email)){
+        throw new ApiError(400,"username or password is required")
+    }
+
+    const user = await User.findOne({
+        $or : [{username},{emai}]
+    })
+
+    if(!user){
+        throw new ApiError(404,"User does not exist")
+    }
+
+    const isPasswordValid = await user.isPasswordCorrect(password)
+
+    if(!isPasswordValid){
+        throw new ApiError(401,"Invalid user credentials")
+    }
+
+    //generating the access token -- it is common task so creating a separate method for this
+    const {accessToken,refreshToken} = await generateAccessAndRefreshTokens(user._id)
+
+    //send these tokens in secure cookie to user
+    const loggedInUser = await User.findById(user._id).
+    select("-password -refreshToken")
+
+    const options = {
+        httpOnly: true, 
+        secure: true
+    }
+
+    return res
+    .status(200)
+    .cookie("accessToken",accessToken,options)
+    .cookie("refreshToken",refreshToken,options)
+    .json(
+        new ApiResponse(
+            200,
+            {
+                user: loggedInUser,accessToken,
+                refreshToken
+            },
+            "User loggid In Successfully"
+        )
+    )
+
+
+})
+
+const logoutUser = asyncHandler(async(req,res) =>{
+    //remove cookie and remove tokens
+    //for this controller we create our custom middleware
+    await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set:{
+                refreshToken:undefined
+            }
+        },
+        {
+            new:true
+        }
+    )
+
+    const options = {
+        httpOnly: true, 
+        secure: true
+    }
+
+    return res
+    .status(200)
+    .clearCookie("accessToken",options)
+    .clearCookie("refreshToken",options)
+    .json(new ApiResponse(200,{},"User logged Out"))
+})
+
 export default registerUser
+export {
+    loginUser,
+    logoutUser
+}
