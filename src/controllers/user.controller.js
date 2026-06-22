@@ -210,17 +210,21 @@ const logoutUser = asyncHandler(async(req,res) =>{
     .json(new ApiResponse(200,{},"User logged Out"))
 })
 
-//lets create a controller to generate the new access token
+//lets create a controller to generate the new access token 
 
 const refreshAccessToken = asyncHandler(async (req,res) => {
-    const incomingRefreshToken = req.cookie.refreshToken || req.body.refreshToken
+    //console.log("1")
+    //console.log(req.cookies);
+    //console.log(req.body);
+    const incomingRefreshToken = req.cookies.refreshToken || req.body?.refreshToken
+    //console.log(incomingRefreshToken)
 
     if(!incomingRefreshToken){
         throw new ApiError(401,"unauthorised request")
     }
 
     try {
-        const decodedToken = jwt.verify(
+        const decodedToken = jwt.verify(         //thid method encodes the user token
             incomingRefreshToken,
             process.env.REFRESH_TOKEN_SECRET
         )
@@ -230,7 +234,10 @@ const refreshAccessToken = asyncHandler(async (req,res) => {
         if(!user){
             throw new ApiError(401,"Invalid refresh token")
         }
-
+        //console.log("jello");
+        
+        //console.log("user is here",user);
+        
         if(incomingRefreshToken!==user?.refreshToken){
             throw new ApiError(401,"Refresh token is expired or used")
         }
@@ -240,7 +247,7 @@ const refreshAccessToken = asyncHandler(async (req,res) => {
             secure: true
         }
 
-        const {accessToken, newRefreshToken} = await generateAccessAndRefereshTokens(user._id)
+        const {accessToken, newRefreshToken} = await generateAccessAndRefreshTokens(user._id)
 
         return res
         .status(200)
