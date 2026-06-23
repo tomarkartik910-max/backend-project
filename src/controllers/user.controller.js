@@ -293,7 +293,7 @@ const getCurrentUser = asyncHandler(async (req,res) => {
     )
 })
 
-const updateAccountDetails = asynchandler(async (req,res) => {
+const updateAccountDetails = asyncHandler(async (req,res) => {
     const {fullName,email} = req.body
     if(!fullName || !email){
         throw new ApiError(400,"All fields are required")
@@ -381,6 +381,76 @@ const updateUserCoverImage = asyncHandler(async(req, res) => {
     )
 })
 
+const getUserChannelProfile = asyncHandler(async(req,res) => {
+    const {username} = req.params
+
+    if(!username?.trim()){
+        throw new ApiError(400,"username is missing")
+    }
+
+    const channel = await User.aggregate([
+        {
+            $match: {
+                username:username?.toLowerCase()
+            }
+        },
+        {
+            $lookup: {
+                from:"subscriptions",      //it is to get the subcribers of this user
+                localField:"_id",
+                foreignField:"channel",
+                as:"subscibers"
+           }
+        },
+        {
+            $lookup:{
+                from:"subscriptions",       //it is to get the channels to whom the user subscibered
+                localField:"_id",
+                foreignField:"subscriber",
+                as:"subscribedTo"
+            }
+        },
+        {
+            $addFields:{
+                subscribersCount:{
+                    $size:"$subscribers"   //it calculates the document to evaluate the no of subscribers of the user
+                },
+                channelsSubscribedToCount:{
+                    $size:"$subscribedTo"  //it calculates the documents to evaluate the no of channels to whom user subscribed
+                },
+                isSubscribed:{
+                    $cond:{
+                        if:{$in:[req.user?._id,"$subscribers.subscriber"]},   //it is to evaluate the whether to show the subscibe button or subscribed button
+                        then:true,
+                        else:false
+                    }
+                }
+            }
+        },
+        {
+            $project:{         //this aggregation pipeline is to select which fields to show at the userprofile 
+                fullName:1,
+                username: 1,
+                subscribersCount: 1,
+                channelsSubscribedToCount: 1,
+                isSubscribed: 1,
+                avatar: 1,
+                coverImage: 1,
+                email: 1
+            }
+        }
+    ])
+
+    if(!channel?.length){
+        throw new ApiError(404,"channel doet not exists")
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,channel[0],"User channel fetched successfully")
+    )
+})
 
 
 export default registerUser
@@ -392,5 +462,6 @@ export {
     getCurrentUser,
     updateAccountDetails,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChannelProfile
 }
